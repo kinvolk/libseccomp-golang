@@ -859,7 +859,7 @@ func TestNotif(t *testing.T) {
 		}
 		err = <-ch
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("Error from notifHandler: %s", err.Error())
 		}
 	}
 }

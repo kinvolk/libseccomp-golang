@@ -741,13 +741,13 @@ func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
 		}
 
 		// TOCTOU check
-		if err := NotifIdValid(fd, req.Id); err != nil {
-			ch <- fmt.Errorf("TOCTOU check failed: req.Id is no longer valid: %s", err)
+		if err := NotifIDValid(fd, req.ID); err != nil {
+			ch <- fmt.Errorf("TOCTOU check failed: req.ID is no longer valid: %s", err)
 			return
 		}
 
 		resp := &ScmpNotifResp{
-			Id:    req.Id,
+			ID:    req.ID,
 			Error: test.respErr,
 			Val:   test.respVal,
 			Flags: test.respFlags,
@@ -765,11 +765,11 @@ func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
 func TestNotif(t *testing.T) {
 
 	// seccomp notification requires API level >= 5
-	api, err := GetApi()
+	api, err := GetAPI()
 	if err != nil {
 		t.Errorf("Error getting API level: %s", err)
 	} else if api < 5 {
-		err = SetApi(5)
+		err = SetAPI(5)
 		if err != nil {
 			t.Errorf("Error setting API level to 5: %s", err)
 			return

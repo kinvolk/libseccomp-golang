@@ -41,7 +41,7 @@ var apiLevel uint
 func init() {
 	// This forces the cgo libseccomp to initialize its internal API support state,
 	// which is necessary in order to other seccomp APIs to work correctly.
-	GetApi()
+	GetAPI()
 }
 
 func (e VersionError) Error() string {
@@ -104,7 +104,7 @@ type ScmpNotifData struct {
 // ScmpNotifReq represents a seccomp userspace notification. See NotifReceive() for
 // info on how to pull such a notification.
 //
-// Id:    notification ID
+// ID:    notification ID
 // Pid:   process that triggered the notification event
 // Flags: filter flags (see seccomp(2))
 // Data:  system call context that triggered the notification
@@ -119,7 +119,7 @@ type ScmpNotifReq struct {
 // ScmpNotifResp represents a seccomp userspace notification response. See NotifRespond()
 // for info on how to push such a response.
 //
-// Id:    notification ID (must match the corresponding ScmpNotifReq Id)
+// ID:    notification ID (must match the corresponding ScmpNotifReq ID)
 // Error: must be 0 if no error occurred, or an error constant from package
 //        syscall (e.g., syscall.EPERM, etc). In the latter case, it's used
 //        as an error return from the syscall that created the notification.
@@ -1059,7 +1059,7 @@ func (f *ScmpFilter) ExportBPF(file *os.File) error {
 // filter context. Such a file descriptor is only valid after the filter has been loaded
 // and only when the filter uses the ActNotify action. The file descriptor can be used to
 // retrieve and respond to notifications associated with the filter (see NotifReceive(),
-// NotifRespond(), and NotifIdValid()).
+// NotifRespond(), and NotifIDValid()).
 func (f *ScmpFilter) GetNotifFd() (ScmpFd, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()

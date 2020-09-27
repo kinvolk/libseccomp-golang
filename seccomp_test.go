@@ -5,7 +5,6 @@
 package seccomp
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -693,22 +692,6 @@ type notifTest struct {
 	syscallRet error
 }
 
-// charPtrToStr retrives the string pointer to by arg
-func charPtrToStr(ptr uint64) string {
-	var buf bytes.Buffer
-	var uptr unsafe.Pointer
-
-	for i := 0; i < 1024; i++ {
-		uptr = unsafe.Pointer(uintptr(ptr + uint64(i)))
-		b := *((*byte)(uptr))
-		if b == '\x00' {
-			break
-		}
-		buf.WriteByte(b)
-	}
-	return buf.String()
-}
-
 // notifHandler handles seccomp notifications and responses
 func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
 
@@ -733,9 +716,8 @@ func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
 		}
 
 		for i, arg := range test.args {
-			reqArg := charPtrToStr(req.Data.Args[i])
-			if arg != reqArg {
-				ch <- fmt.Errorf("Error in syscall arg[%d]: got %s, want %s", i, reqArg, arg)
+			if uintptr(unsafe.Pointer(&test.args[i])) != uintptr(req.Data.Args[i]) {
+				ch <- fmt.Errorf("Error in syscall arg[%d]: got 0x%x, want %p (%s)", i, req.Data.Args[i], &test.args[i], arg)
 				return
 			}
 		}

@@ -45,18 +45,17 @@ func init() {
 }
 
 func (e VersionError) Error() string {
-	format := "Libseccomp version too low: "
+	messageStr := ""
 	if e.message != "" {
-		format += e.message + ": "
+		messageStr = e.message + ": "
 	}
-	format += "minimum supported is "
+	minimumStr := ""
 	if e.minimum != "" {
-		format += e.minimum + ": "
+		minimumStr = e.minimum
 	} else {
-		format += "2.2.0: "
+		minimumStr = "2.2.0"
 	}
-	format += "detected %d.%d.%d"
-	return fmt.Sprintf(format, verMajor, verMinor, verMicro)
+	return fmt.Sprintf("Libseccomp version too low: %sminimum supported is %s: detected %d.%d.%d", messageStr, minimumStr, verMajor, verMinor, verMicro)
 }
 
 // ScmpArch represents a CPU architecture. Seccomp can restrict syscalls on a

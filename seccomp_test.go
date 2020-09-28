@@ -529,7 +529,6 @@ func TestMergeFilters(t *testing.T) {
 }
 
 func TestRuleAddAndLoad(t *testing.T) {
-
 	// Test #1: Add a trivial filter
 	filter1, err := NewFilter(ActAllow)
 	if err != nil {
@@ -695,7 +694,6 @@ type notifTest struct {
 
 // notifHandler handles seccomp notifications and responses
 func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
-
 	for _, test := range tests {
 		req, err := NotifReceive(fd)
 		if err != nil {
@@ -745,7 +743,6 @@ func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
 }
 
 func TestNotif(t *testing.T) {
-
 	// seccomp notification requires API level >= 5
 	api, err := GetAPI()
 	if err != nil {
@@ -866,7 +863,7 @@ func TestNotif(t *testing.T) {
 		}
 
 		if fd < 3 {
-			t.Errorf("Error in notification fd: want 0, got %v", fd)
+			t.Errorf("Error in notification fd: want >=3, got %v", fd)
 		}
 		seccompFdChan <- fd
 

@@ -2,7 +2,7 @@ libseccomp-golang: Releases
 ===============================================================================
 https://github.com/seccomp/libseccomp-golang
 
-* Version 1.0.0 - Dec 12, 2019
+* Version UNRELEASED - FUTURE
 - Added support for the seccomp userspace notification API.
 
 * Version 0.9.1 - May 21, 2019

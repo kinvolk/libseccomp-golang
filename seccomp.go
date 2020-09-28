@@ -20,8 +20,14 @@ import (
 
 // C wrapping code
 
-// #cgo CFLAGS: -I../seccomp/include
-// #cgo LDFLAGS: -L../seccomp/src/.libs -l:libseccomp.a
+// To compile libseccomp-golang against a specific version of libseccomp:
+// cd ../libseccomp && mkdir -p prefix
+// ./configure --prefix=$PWD/prefix && make && make install
+// cd ../libseccomp-golang
+// PKG_CONFIG_PATH=$PWD/../libseccomp/prefix/lib/pkgconfig/ make
+// LD_PRELOAD=$PWD/../libseccomp/prefix/lib/libseccomp.so.2.5.0 PKG_CONFIG_PATH=$PWD/../libseccomp/prefix/lib/pkgconfig/ make test
+
+// #cgo pkg-config: libseccomp
 // #include <stdlib.h>
 // #include <seccomp.h>
 import "C"

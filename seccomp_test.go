@@ -747,11 +747,14 @@ func TestNotif(t *testing.T) {
 	api, err := GetAPI()
 	if err != nil {
 		t.Errorf("Error getting API level: %s", err)
-	} else if api < 5 {
-		err = SetAPI(5)
-		if err != nil {
-			t.Errorf("Error setting API level to 5: %s", err)
-			return
+	} else {
+		t.Logf("Got API level %v", api)
+		if api < 5 {
+			err = SetAPI(5)
+			if err != nil {
+				t.Errorf("Error setting API level to 5: %s", err)
+				return
+			}
 		}
 	}
 

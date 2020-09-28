@@ -1101,8 +1101,7 @@ func NotifReceive(fd ScmpFd) (*ScmpNotifReq, error) {
 	}
 
 	defer func() {
-		C.free(unsafe.Pointer(req))
-		C.free(unsafe.Pointer(resp))
+		C.seccomp_notify_free(req, resp)
 	}()
 
 	if retCode := C.seccomp_notify_receive(C.int(fd), req); retCode != 0 {
@@ -1128,8 +1127,7 @@ func NotifRespond(fd ScmpFd, scmpResp *ScmpNotifResp) error {
 	}
 
 	defer func() {
-		C.free(unsafe.Pointer(req))
-		C.free(unsafe.Pointer(resp))
+		C.seccomp_notify_free(req, resp)
 	}()
 
 	scmpResp.toNative(resp)

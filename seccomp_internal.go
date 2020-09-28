@@ -87,6 +87,10 @@ const uint32_t C_ARCH_S390X        = SCMP_ARCH_S390X;
 #define SCMP_ACT_KILL_THREAD	0x00000000U
 #endif
 
+#ifndef SCMP_ACT_NOTIFY
+#define SCMP_ACT_NOTIFY 0x7fc00000U
+#endif
+
 const uint32_t C_ACT_KILL          = SCMP_ACT_KILL;
 const uint32_t C_ACT_KILL_PROCESS  = SCMP_ACT_KILL_PROCESS;
 const uint32_t C_ACT_KILL_THREAD   = SCMP_ACT_KILL_THREAD;

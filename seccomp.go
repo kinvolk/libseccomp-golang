@@ -1066,20 +1066,7 @@ func (f *ScmpFilter) ExportBPF(file *os.File) error {
 // retrieve and respond to notifications associated with the filter (see NotifReceive(),
 // NotifRespond(), and NotifIDValid()).
 func (f *ScmpFilter) GetNotifFd() (ScmpFd, error) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
-	if !f.valid {
-		return -1, errBadFilter
-	}
-
-	if apiLevel < 5 {
-		return -1, fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
-	}
-
-	fd := C.seccomp_notify_fd(f.filterCtx)
-
-	return ScmpFd(fd), nil
+	return f.getNotifFd()
 }
 
 // NotifReceive retrieves a seccomp userspace notification from a filter whose ActNotify
@@ -1088,67 +1075,18 @@ func (f *ScmpFilter) GetNotifFd() (ScmpFd, error) {
 // notification. As multiple notifications may be pending at any time, this function is
 // normally called within a polling loop.
 func NotifReceive(fd ScmpFd) (*ScmpNotifReq, error) {
-	var req *C.struct_seccomp_notif
-	var resp *C.struct_seccomp_notif_resp
-
-	if apiLevel < 5 {
-		return nil, fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
-	}
-
-	// we only use the request here; the response is unused
-	if retCode := C.seccomp_notify_alloc(&req, &resp); retCode != 0 {
-		return nil, errRc(retCode)
-	}
-
-	defer func() {
-		C.seccomp_notify_free(req, resp)
-	}()
-
-	if retCode := C.seccomp_notify_receive(C.int(fd), req); retCode != 0 {
-		return nil, errRc(retCode)
-	}
-
-	return notifReqFromNative(req)
+	return notifReceive(fd)
 }
 
 // NotifRespond responds to a notification retrieved via NotifReceive(). The response Id
 // must match that of the corresponding notification retrieved via NotifReceive().
 func NotifRespond(fd ScmpFd, scmpResp *ScmpNotifResp) error {
-	var req *C.struct_seccomp_notif
-	var resp *C.struct_seccomp_notif_resp
-
-	if apiLevel < 5 {
-		return fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
-	}
-
-	// we only use the reponse here; the request is discarded
-	if retCode := C.seccomp_notify_alloc(&req, &resp); retCode != 0 {
-		return errRc(retCode)
-	}
-
-	defer func() {
-		C.seccomp_notify_free(req, resp)
-	}()
-
-	scmpResp.toNative(resp)
-
-	if retCode := C.seccomp_notify_respond(C.int(fd), resp); retCode != 0 {
-		return errRc(retCode)
-	}
-
-	return nil
+	return notifRespond(fd, scmpResp)
 }
 
 // NotifIDValid checks if a notification is still valid. An return value of nil means the
 // notification is still valid. Otherwise the notification is not valid. This can be used
 // to mitigate time-of-check-time-of-use (TOCTOU) attacks as described in seccomp_notify_id_valid(2).
 func NotifIDValid(fd ScmpFd, id uint64) error {
-	if apiLevel < 5 {
-		return fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
-	}
-
-	if retCode := C.seccomp_notify_id_valid(C.int(fd), C.uint64_t(id)); retCode != 0 {
-		return errRc(retCode)
-	}
-	return nil
+	return notifIDValid(fd, id)
 }

@@ -201,6 +201,51 @@ void add_struct_arg_cmp(
 
         return;
 }
+
+// The seccomp notify API functions were added in v2.5.0
+#if (SCMP_VER_MAJOR < 2) || \
+    (SCMP_VER_MAJOR == 2 && SCMP_VER_MINOR < 5)
+
+struct seccomp_data {
+	int nr;
+	__u32 arch;
+	__u64 instruction_pointer;
+	__u64 args[6];
+};
+
+struct seccomp_notif {
+	__u64 id;
+	__u32 pid;
+	__u32 flags;
+	struct seccomp_data data;
+};
+
+struct seccomp_notif_resp {
+	__u64 id;
+	__s64 val;
+	__s32 error;
+	__u32 flags;
+};
+
+int seccomp_notify_alloc(struct seccomp_notif **req, struct seccomp_notif_resp **resp) {
+	return -EOPNOTSUPP;
+}
+int seccomp_notify_fd(const scmp_filter_ctx ctx) {
+	return -EOPNOTSUPP;
+}
+void seccomp_notify_free(struct seccomp_notif *req, struct seccomp_notif_resp *resp) {
+}
+int seccomp_notify_id_valid(int fd, uint64_t id) {
+	return -EOPNOTSUPP;
+}
+int seccomp_notify_receive(int fd, struct seccomp_notif *req) {
+	return -EOPNOTSUPP;
+}
+int seccomp_notify_respond(int fd, struct seccomp_notif_resp *resp) {
+	return -EOPNOTSUPP;
+}
+
+#endif
 */
 import "C"
 
@@ -652,4 +697,85 @@ func (scmpResp *ScmpNotifResp) toNative(resp *C.struct_seccomp_notif_resp) {
 	resp.val = C.__s64(scmpResp.Val)
 	resp.error = (C.__s32(scmpResp.Error) * -1) // kernel requires a negated value
 	resp.flags = C.__u32(scmpResp.Flags)
+}
+
+// Userspace Notification API
+// Calls to C.seccomp_notify* hidden from seccomp.go
+
+func (f *ScmpFilter) getNotifFd() (ScmpFd, error) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	if !f.valid {
+		return -1, errBadFilter
+	}
+
+	if apiLevel < 5 {
+		return -1, fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
+	}
+
+	fd := C.seccomp_notify_fd(f.filterCtx)
+
+	return ScmpFd(fd), nil
+}
+
+func notifReceive(fd ScmpFd) (*ScmpNotifReq, error) {
+	var req *C.struct_seccomp_notif
+	var resp *C.struct_seccomp_notif_resp
+
+	if apiLevel < 5 {
+		return nil, fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
+	}
+
+	// we only use the request here; the response is unused
+	if retCode := C.seccomp_notify_alloc(&req, &resp); retCode != 0 {
+		return nil, errRc(retCode)
+	}
+
+	defer func() {
+		C.seccomp_notify_free(req, resp)
+	}()
+
+	if retCode := C.seccomp_notify_receive(C.int(fd), req); retCode != 0 {
+		return nil, errRc(retCode)
+	}
+
+	return notifReqFromNative(req)
+}
+
+func notifRespond(fd ScmpFd, scmpResp *ScmpNotifResp) error {
+	var req *C.struct_seccomp_notif
+	var resp *C.struct_seccomp_notif_resp
+
+	if apiLevel < 5 {
+		return fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
+	}
+
+	// we only use the reponse here; the request is discarded
+	if retCode := C.seccomp_notify_alloc(&req, &resp); retCode != 0 {
+		return errRc(retCode)
+	}
+
+	defer func() {
+		C.seccomp_notify_free(req, resp)
+	}()
+
+	scmpResp.toNative(resp)
+
+	if retCode := C.seccomp_notify_respond(C.int(fd), resp); retCode != 0 {
+		return errRc(retCode)
+	}
+
+	return nil
+}
+
+func notifIDValid(fd ScmpFd, id uint64) error {
+	if apiLevel < 5 {
+		return fmt.Errorf("seccomp notification requires API level >= 5; current level = %d", apiLevel)
+	}
+
+	if retCode := C.seccomp_notify_id_valid(C.int(fd), C.uint64_t(id)); retCode != 0 {
+		return errRc(retCode)
+	}
+	return nil
 }

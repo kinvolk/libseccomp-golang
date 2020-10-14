@@ -201,6 +201,31 @@ void add_struct_arg_cmp(
 
         return;
 }
+
+// The seccomp notify API functions were added in v2.5.0
+#if (SCMP_VER_MAJOR < 2) || \
+    (SCMP_VER_MAJOR == 2 && SCMP_VER_MINOR < 5)
+
+int seccomp_notify_alloc(void *req, void *resp) {
+	return -EOPNOTSUPP;
+}
+int seccomp_notify_fd(const scmp_filter_ctx ctx) {
+	return -EOPNOTSUPP;
+}
+void seccomp_notify_free(void *req, void *resp) {
+}
+int seccomp_notify_id_valid(int fd, uint64_t id) {
+	return -EOPNOTSUPP;
+}
+int seccomp_notify_receive(int fd, void *req) {
+	return -EOPNOTSUPP;
+}
+int seccomp_notify_respond(int fd, void *resp) {
+	return -EOPNOTSUPP;
+}
+
+#endif
+
 */
 import "C"
 

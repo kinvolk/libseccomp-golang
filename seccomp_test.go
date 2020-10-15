@@ -746,13 +746,17 @@ func TestNotif(t *testing.T) {
 	// seccomp notification requires API level >= 5
 	api, err := GetAPI()
 	if err != nil {
+		if !APILevelIsSupported() {
+			t.Skipf("Skipping test: %s", err)
+		}
+
 		t.Errorf("Error getting API level: %s", err)
 	} else {
 		t.Logf("Got API level %v", api)
 		if api < 5 {
 			err = SetAPI(5)
 			if err != nil {
-				t.Errorf("Error setting API level to 5: %s", err)
+				t.Skipf("Skipping test: API level %d is less than 5 and could not set it to 5", api)
 				return
 			}
 		}
@@ -904,4 +908,32 @@ L:
 			break L
 		}
 	}
+}
+
+// TestNotifUnsupported is checking that the user notify API correctly returns
+// an error when we don't have the proper api level, for example when linking
+// with libseccomp < 2.5.0.
+func TestNotifUnsupported(t *testing.T) {
+	// seccomp notification requires API level >= 5
+	api := 0
+	if APILevelIsSupported() {
+		api, err := GetAPI()
+		if err != nil {
+			t.Errorf("Error getting API level: %s", err)
+		} else if api >= 5 {
+			t.Skipf("Skipping test for old libseccomp support: API level %d is >= 5", api)
+		}
+	}
+
+	filter, err := NewFilter(ActAllow)
+	if err != nil {
+		t.Errorf("Error creating filter: %s", err)
+	}
+	defer filter.Release()
+
+	_, err = filter.GetNotifFd()
+	if err == nil {
+		t.Errorf("Error: GetNotifFd was supposed to fail with API level %d", api)
+	}
+
 }

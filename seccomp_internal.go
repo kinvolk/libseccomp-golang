@@ -620,7 +620,6 @@ func syscallFromNative(a C.int) ScmpSyscall {
 }
 
 func notifReqFromNative(req *C.struct_seccomp_notif) (*ScmpNotifReq, error) {
-
 	scmpArgs := make([]uint64, 6)
 	for i := 0; i < len(scmpArgs); i++ {
 		scmpArgs[i] = uint64(req.data.args[i])

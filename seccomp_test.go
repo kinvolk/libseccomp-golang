@@ -7,12 +7,59 @@ package seccomp
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 	"unsafe"
 )
+
+// execInSubprocess calls the go test binary again for the same test.
+// This must be only top-level statment in the test function. Do not nest this.
+// It will slightly defect the test log output as the test is entered twice
+func execInSubprocess(t *testing.T, f func(t *testing.T)) {
+	const subprocessEnvKey = `GO_SUBPROCESS_KEY`
+	if testIDString, ok := os.LookupEnv(subprocessEnvKey); ok && testIDString == "1" {
+		t.Run(`subprocess`, f)
+		return
+	}
+
+	cmd := exec.Command(os.Args[0])
+	cmd.Args = []string{os.Args[0], "-test.run=" + t.Name() + "$", "-test.v=true"}
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, `-test.testlogfile=`) {
+			cmd.Args = append(cmd.Args, arg)
+		}
+	}
+	cmd.Env = []string{subprocessEnvKey + "=1"}
+	cmd.Stdin = os.Stdin
+
+	var b strings.Builder
+	cmd.Stdout = &b
+	cmd.Stderr = &b
+
+	err := cmd.Start()
+	if err != nil {
+		t.Logf("\n%s", b.String())
+		t.Error("failed to spawn test in sub-process", err)
+		t.FailNow()
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		t.Logf("\n%s", b.String())
+		if err, ok := err.(*exec.ExitError); ok {
+			// err.ExitCode() not available in go1.11
+			// https://github.com/golang/go/issues/26539
+			t.Errorf("Test failed: %v", err.String())
+		}
+		t.Error(`test failed`)
+		t.FailNow()
+	}
+	t.Logf("\n%s", b.String())
+}
 
 // Type Function Tests
 
@@ -75,6 +122,9 @@ func APILevelIsSupported() bool {
 }
 
 func TestGetAPILevel(t *testing.T) {
+	execInSubprocess(t, subprocessGetAPILevel)
+}
+func subprocessGetAPILevel(t *testing.T) {
 	api, err := GetAPI()
 	if !APILevelIsSupported() {
 		if api != 0 {
@@ -91,6 +141,9 @@ func TestGetAPILevel(t *testing.T) {
 }
 
 func TestSetAPILevel(t *testing.T) {
+	execInSubprocess(t, subprocessSetAPILevel)
+}
+func subprocessSetAPILevel(t *testing.T) {
 	var expectedAPI uint
 
 	expectedAPI = 1
@@ -529,6 +582,9 @@ func TestMergeFilters(t *testing.T) {
 }
 
 func TestRuleAddAndLoad(t *testing.T) {
+	execInSubprocess(t, subprocessRuleAddAndLoad)
+}
+func subprocessRuleAddAndLoad(t *testing.T) {
 	// Test #1: Add a trivial filter
 	filter1, err := NewFilter(ActAllow)
 	if err != nil {
@@ -602,6 +658,9 @@ func TestRuleAddAndLoad(t *testing.T) {
 }
 
 func TestLogAct(t *testing.T) {
+	execInSubprocess(t, subprocessLogAct)
+}
+func subprocessLogAct(t *testing.T) {
 	expectedPid := syscall.Getpid()
 
 	api, err := GetAPI()
@@ -644,6 +703,9 @@ func TestLogAct(t *testing.T) {
 }
 
 func TestCreateActKillThreadFilter(t *testing.T) {
+	execInSubprocess(t, subprocessCreateActKillThreadFilter)
+}
+func subprocessCreateActKillThreadFilter(t *testing.T) {
 	filter, err := NewFilter(ActKillThread)
 	if err != nil {
 		t.Errorf("Error creating filter: %s", err)
@@ -655,6 +717,9 @@ func TestCreateActKillThreadFilter(t *testing.T) {
 }
 
 func TestCreateActKillProcessFilter(t *testing.T) {
+	execInSubprocess(t, subprocessCreateActKillProcessFilter)
+}
+func subprocessCreateActKillProcessFilter(t *testing.T) {
 	api, err := GetAPI()
 	if err != nil {
 		if !APILevelIsSupported() {
@@ -743,6 +808,9 @@ func notifHandler(ch chan error, fd ScmpFd, tests []notifTest) {
 }
 
 func TestNotif(t *testing.T) {
+	execInSubprocess(t, subprocessNotif)
+}
+func subprocessNotif(t *testing.T) {
 	// seccomp notification requires API level >= 5
 	api, err := GetAPI()
 	if err != nil {
@@ -914,6 +982,9 @@ L:
 // an error when we don't have the proper api level, for example when linking
 // with libseccomp < 2.5.0.
 func TestNotifUnsupported(t *testing.T) {
+	execInSubprocess(t, subprocessNotifUnsupported)
+}
+func subprocessNotifUnsupported(t *testing.T) {
 	// seccomp notification requires API level >= 5
 	api := 0
 	if APILevelIsSupported() {
@@ -935,5 +1006,4 @@ func TestNotifUnsupported(t *testing.T) {
 	if err == nil {
 		t.Errorf("Error: GetNotifFd was supposed to fail with API level %d", api)
 	}
-
 }
